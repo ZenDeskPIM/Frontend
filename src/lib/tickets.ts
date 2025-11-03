@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { api } from "./api";
 import type { Ticket as StoreTicket, TicketPrioridade, TicketStatus } from "@/hooks/use-tickets";
 
@@ -70,11 +69,13 @@ export function mapApiTicketToStore(t: ApiTicketSummary): StoreTicket {
 
     return {
         id: t.number, // Keep human-friendly number as the external ID used in UI routes
+        dbId: t.id,
         titulo: t.subject,
         descricao: "", // Summary payload doesn't include description
         status,
         prioridade,
-        categoria: "",
+        // Backend ainda não fornece categoria; exibir Setor (department) como fallback
+        categoria: t.department || "",
         subcategoria: undefined,
         usuario: t.customer,
         departamento: t.department,
@@ -141,7 +142,10 @@ export async function createTicket(input: CreateTicketInput): Promise<StoreTicke
         slaHours: data.slaHours,
         messageCount: data.messageCount ?? 0,
     };
-    return mapApiTicketToStore(summary);
+    const store = mapApiTicketToStore(summary);
+    // ensure dbId from detail is preserved
+    store.dbId = data.id;
+    return store;
 }
 
 export async function getTicketByNumber(number: string, persist?: (ticket: StoreTicket) => void): Promise<StoreTicket | null> {
@@ -165,6 +169,7 @@ export async function getTicketByNumber(number: string, persist?: (ticket: Store
             messageCount: d.messageCount ?? 0,
         };
         const mapped = mapApiTicketToStore(summaryFromDetail);
+        mapped.dbId = d.id;
         mapped.descricao = d.description ?? "";
         mapped.hasFullDetail = true;
         persist?.(mapped);
@@ -219,4 +224,8 @@ export async function updateTicketStatusByNumber(number: string, newStatusPt: Ti
     if (!item || item.number !== number) throw new Error("Ticket não encontrado");
     const newStatus = statusMapToEn[newStatusPt];
     await api.put<{ message?: string }>(`/tickets/${item.id}/status`, { newStatus });
+}
+
+export async function assignTicketByDbId(dbId: number, agentId: number): Promise<void> {
+    await api.put<{ message?: string }>(`/tickets/${dbId}/assign`, { agentId });
 }

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserPlus, Search, Edit, Trash2, Shield, User, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { createUser, listUsers, ApiUser } from "@/lib/users";
+import { createUser, listUsers, listCustomers, ApiUser } from "@/lib/users";
 
 type UiUsuario = {
   id: number;
@@ -34,6 +34,7 @@ const tipoColors = {
 
 export default function Usuarios() {
   const [usuarios, setUsuarios] = useState<UiUsuario[]>([]);
+  const [viewMode, setViewMode] = useState<'all' | 'customers'>('all');
   const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -68,11 +69,18 @@ export default function Usuarios() {
   async function fetchUsers(q?: string) {
     try {
       setLoading(true);
-      const res = await listUsers({ page: 1, pageSize: 50, q });
-      setUsuarios(res.items.map(mapApiUser));
-      setTotal(res.total);
-    } catch (err: any) {
-      toast.error("Falha ao carregar usuários");
+      if (viewMode === 'customers') {
+        const res = await listCustomers({ page: 1, pageSize: 200, q });
+        setUsuarios(res.items.map(mapApiUser));
+        setTotal(res.total);
+      } else {
+        const res = await listUsers({ page: 1, pageSize: 50, q });
+        setUsuarios(res.items.map(mapApiUser));
+        setTotal(res.total);
+      }
+    } catch (err: unknown) {
+      const msg = extractErrorMessage(err, "Falha ao carregar usuários");
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -106,7 +114,8 @@ export default function Usuarios() {
   const handleCreateUser = async () => {
     try {
       const userType = formData.tipo === "Admin" ? "Admin" : formData.tipo === "Suporte" ? "Agent" : "Customer";
-      const payload: any = {
+      type CreateUserInput = Parameters<typeof createUser>[0];
+      const payload: CreateUserInput = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
@@ -137,8 +146,8 @@ export default function Usuarios() {
         isAvailable: true,
       });
       toast.success(`Usuário ${created.fullName} foi criado com sucesso.`);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || "Falha ao criar usuário";
+    } catch (err: unknown) {
+      const msg = extractErrorMessage(err, "Falha ao criar usuário");
       toast.error(msg);
     }
   };
@@ -169,6 +178,12 @@ export default function Usuarios() {
     });
   };
 
+  function extractErrorMessage(err: unknown, fallback = "Erro") {
+    if (!err || typeof err !== 'object') return fallback;
+    const maybe = (err as { response?: { data?: { message?: unknown } } }).response?.data?.message;
+    return typeof maybe === 'string' ? maybe : fallback;
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -178,250 +193,266 @@ export default function Usuarios() {
             Gerencie usuários, permissões e acessos do sistema
           </p>
         </div>
-
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) resetForm();
-        }}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4" />
-              Novo Usuário
+        <div className="flex items-center gap-2">
+          <div className="flex items-center space-x-2">
+            <Button variant={viewMode === 'all' ? 'default' : 'ghost'} size="sm" onClick={() => { setViewMode('all'); fetchUsers(); }}>
+              Todos
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {editingUser ? "Editar Usuário" : "Criar Novo Usuário"}
-              </DialogTitle>
-              <DialogDescription>
-                {editingUser
-                  ? "Atualize as informações do usuário abaixo."
-                  : "Preencha as informações para criar um novo usuário."}
-              </DialogDescription>
-            </DialogHeader>
+            <Button variant={viewMode === 'customers' ? 'default' : 'ghost'} size="sm" onClick={() => { setViewMode('customers'); fetchUsers(); }}>
+              Clientes
+            </Button>
+          </div>
 
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">Nome</Label>
-                <Input id="firstName" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} placeholder="Digite o nome" />
-              </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => { setFormData({ ...formData, tipo: 'Usuário' }); setIsDialogOpen(true); }}>
+              Novo Cliente
+            </Button>
 
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Sobrenome</Label>
-                <Input id="lastName" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} placeholder="Digite o sobrenome" />
-              </div>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) resetForm();
+            }}>
+              <DialogTrigger asChild>
+                <Button className="flex items-center gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Novo Usuário
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingUser ? "Editar Usuário" : "Criar Novo Usuário"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {editingUser
+                      ? "Atualize as informações do usuário abaixo."
+                      : "Preencha as informações para criar um novo usuário."}
+                  </DialogDescription>
+                </DialogHeader>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="Digite o email"
-                />
-              </div>
-
-              {!editingUser && (
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha</Label>
-                  <Input id="password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Defina uma senha" />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label>Tipo</Label>
-                <Select value={formData.tipo} onValueChange={(value: "Admin" | "Usuário" | "Suporte") => setFormData({ ...formData, tipo: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Usuário">Usuário</SelectItem>
-                    <SelectItem value="Suporte">Suporte</SelectItem>
-                    <SelectItem value="Admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formData.tipo === "Usuário" && (
-                <div className="space-y-2">
-                  <Label htmlFor="department">Departamento</Label>
-                  <Input id="department" value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} placeholder="Digite o departamento" />
-                </div>
-              )}
-
-              {formData.tipo === "Suporte" && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="specialization">Especialização</Label>
-                    <Input id="specialization" value={formData.specialization} onChange={(e) => setFormData({ ...formData, specialization: e.target.value })} placeholder="Ex: Redes" />
+                    <Label htmlFor="firstName">Nome</Label>
+                    <Input id="firstName" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} placeholder="Digite o nome" />
                   </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="level">Nível</Label>
-                    <Input id="level" type="number" min={1} max={5} value={formData.level} onChange={(e) => setFormData({ ...formData, level: Number(e.target.value) })} />
+                    <Label htmlFor="lastName">Sobrenome</Label>
+                    <Input id="lastName" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} placeholder="Digite o sobrenome" />
                   </div>
+
                   <div className="space-y-2">
-                    <Label>Disponível</Label>
-                    <Select value={formData.isAvailable ? "true" : "false"} onValueChange={(v: "true" | "false") => setFormData({ ...formData, isAvailable: v === "true" })}>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="Digite o email"
+                    />
+                  </div>
+
+                  {!editingUser && (
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Senha</Label>
+                      <Input id="password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Defina uma senha" />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label>Tipo</Label>
+                    <Select value={formData.tipo} onValueChange={(value: "Admin" | "Usuário" | "Suporte") => setFormData({ ...formData, tipo: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="true">Sim</SelectItem>
-                        <SelectItem value="false">Não</SelectItem>
+                        <SelectItem value="Usuário">Usuário</SelectItem>
+                        <SelectItem value="Suporte">Suporte</SelectItem>
+                        <SelectItem value="Admin">Admin</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-              )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={formData.status} onValueChange={(value: "Ativo" | "Inativo") => setFormData({ ...formData, status: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Ativo">Ativo</SelectItem>
-                      <SelectItem value="Inativo">Inativo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
+                  {formData.tipo === "Usuário" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="department">Departamento</Label>
+                      <Input id="department" value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} placeholder="Digite o departamento" />
+                    </div>
+                  )}
 
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={editingUser ? () => toast.info("Atualização em breve") : handleCreateUser}>
-                {editingUser ? "Atualizar" : "Criar"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Lista de Usuários
-          </CardTitle>
-          <CardDescription>
-            {loading ? "Carregando..." : `Total de ${total} usuário(s) cadastrado(s)`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Pesquisar por nome, email, departamento ou ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md"
-            />
-          </div>
-
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Nome</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Último Acesso</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsuarios.map((usuario) => (
-                <TableRow key={usuario.id}>
-                  <TableCell className="font-medium">{usuario.id}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="h-4 w-4 text-primary" />
+                  {formData.tipo === "Suporte" && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="specialization">Especialização</Label>
+                        <Input id="specialization" value={formData.specialization} onChange={(e) => setFormData({ ...formData, specialization: e.target.value })} placeholder="Ex: Redes" />
                       </div>
-                      {usuario.nome}
+                      <div className="space-y-2">
+                        <Label htmlFor="level">Nível</Label>
+                        <Input id="level" type="number" min={1} max={5} value={formData.level} onChange={(e) => setFormData({ ...formData, level: Number(e.target.value) })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Disponível</Label>
+                        <Select value={formData.isAvailable ? "true" : "false"} onValueChange={(v: "true" | "false") => setFormData({ ...formData, isAvailable: v === "true" })}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="true">Sim</SelectItem>
+                            <SelectItem value="false">Não</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell>{usuario.email}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className={tipoColors[usuario.tipo]}>
-                      <Shield className="h-3 w-3 mr-1" />
-                      {usuario.tipo}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className={statusColors[usuario.status]}>
-                      {usuario.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {usuario.ultimoAcesso !== "-" && typeof usuario.ultimoAcesso === "string"
-                      ? new Date(usuario.ultimoAcesso).toLocaleDateString('pt-BR')
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditUser(usuario)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      {/* Delete with confirmation - Heurística 5: Prevenção de erros */}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle className="flex items-center gap-2">
-                              <AlertTriangle className="h-5 w-5 text-destructive" />
-                              Confirmar exclusão
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Tem certeza que deseja excluir o usuário <strong>{usuario.nome}</strong>?
-                              Esta ação não pode ser desfeita e todos os dados relacionados serão perdidos.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteUser(usuario.id, usuario.nome)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Sim, excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  )}
 
-          {filteredUsuarios.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhum usuário encontrado com os filtros aplicados.
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select value={formData.status} onValueChange={(value: "Ativo" | "Inativo") => setFormData({ ...formData, status: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Ativo">Ativo</SelectItem>
+                          <SelectItem value="Inativo">Inativo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={editingUser ? () => toast.info("Atualização em breve") : handleCreateUser}>
+                    {editingUser ? "Atualizar" : "Criar"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Lista de Usuários
+            </CardTitle>
+            <CardDescription>
+              {loading ? "Carregando..." : `Total de ${total} usuário(s) cadastrado(s)`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Pesquisar por nome, email, departamento ou ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-md"
+              />
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Último Acesso</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsuarios.map((usuario) => (
+                  <TableRow key={usuario.id}>
+                    <TableCell className="font-medium">{usuario.id}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <User className="h-4 w-4 text-primary" />
+                        </div>
+                        {usuario.nome}
+                      </div>
+                    </TableCell>
+                    <TableCell>{usuario.email}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className={tipoColors[usuario.tipo]}>
+                        <Shield className="h-3 w-3 mr-1" />
+                        {usuario.tipo}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className={statusColors[usuario.status]}>
+                        {usuario.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {usuario.ultimoAcesso !== "-" && typeof usuario.ultimoAcesso === "string"
+                        ? new Date(usuario.ultimoAcesso).toLocaleDateString('pt-BR')
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditUser(usuario)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        {/* Delete with confirmation - Heurística 5: Prevenção de erros */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="flex items-center gap-2">
+                                <AlertTriangle className="h-5 w-5 text-destructive" />
+                                Confirmar exclusão
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir o usuário <strong>{usuario.nome}</strong>?
+                                Esta ação não pode ser desfeita e todos os dados relacionados serão perdidos.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteUser(usuario.id, usuario.nome)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Sim, excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+            {filteredUsuarios.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                Nenhum usuário encontrado com os filtros aplicados.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

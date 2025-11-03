@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import heroImage from "@/assets/helpdesk-hero.jpg";
 import { useTickets, Ticket } from "@/hooks/use-tickets";
+import { listTickets } from "@/lib/tickets";
+import { useAuth } from "@/hooks/use-auth-hook";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -50,6 +52,40 @@ const statusColors = {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { tickets } = useTickets();
+  const { loading: authLoading, user: authUser } = useAuth();
+  const { replaceAll, upsertTicketDetail } = useTickets();
+
+  // Load tickets on dashboard mount (and when auth bootstrap completes)
+  useEffect(() => {
+    if (authLoading) return;
+    let ignore = false;
+    async function load() {
+      try {
+        const res = await listTickets({ page: 1, pageSize: 50 });
+        if (ignore) return;
+        let items = res.items;
+        // prefer local optimistic owner values
+        try {
+          if (authUser) {
+            const raw = localStorage.getItem('tickets');
+            if (raw) {
+              const local: Array<{ id: string; usuario?: string }> = JSON.parse(raw);
+              const map = new Map(local.map((i) => [i.id, i.usuario]));
+              items = items.map((it) => ({ ...it, usuario: map.get(it.id) ?? it.usuario }));
+            }
+          }
+        } catch {
+          // ignore
+        }
+        replaceAll(items);
+      } catch {
+        // ignore
+      }
+    }
+    void load();
+    return () => { ignore = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading]);
   const isMobile = useIsMobile();
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");

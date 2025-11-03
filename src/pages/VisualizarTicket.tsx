@@ -8,7 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Clock, User, Calendar, Tag, AlertTriangle } from "lucide-react";
 import { useTickets, Ticket as StoreTicket } from "@/hooks/use-tickets";
-import { getTicketByNumber } from "@/lib/tickets";
+import { useAuth } from "@/hooks/use-auth-hook";
+import { useToast } from "@/hooks/use-toast";
+import { assignTicketByDbId, getTicketByNumber } from "@/lib/tickets";
 
 type Ticket = StoreTicket;
 
@@ -74,6 +76,8 @@ export default function VisualizarTicket() {
   }, [id, localTicket?.hasFullDetail, upsertTicketDetail]);
 
   const ticket = remoteTicket ?? localTicket;
+  const { user: authUser } = useAuth();
+  const { toast } = useToast();
 
   // Fallback: if we have a local ticket without descricao (list mapping), merge remote description once loaded
   if (ticket && remoteTicket && !localTicket?.descricao && remoteTicket.descricao) {
@@ -299,6 +303,37 @@ export default function VisualizarTicket() {
                   </Badge>
                 </div>
               </div>
+
+              {/* Agent actions: assumir/atribuir */}
+              {(authUser?.userType === "Agent" || authUser?.userType === "Admin") && (
+                <div className="mt-3">
+                  {ticket.dbId ? (
+                    <div className="flex flex-col gap-2">
+                      {authUser?.userType === "Agent" && (
+                        <Button
+                          variant="default"
+                          onClick={async () => {
+                            try {
+                              if (!ticket.dbId || !authUser) return;
+                              await assignTicketByDbId(ticket.dbId, authUser.id as number);
+                              toast({ title: "Chamado assumido", description: "Você agora é o responsável por este chamado." });
+                              // Refresh detail
+                              const refreshed = await getTicketByNumber(ticket.id);
+                              if (refreshed) setRemoteTicket(refreshed);
+                            } catch (e) {
+                              toast({ title: "Erro", description: "Falha ao assumir chamado.", variant: "destructive" });
+                            }
+                          }}
+                        >
+                          Assumir Chamado
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">ID interno do chamado não disponível para esta operação.</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

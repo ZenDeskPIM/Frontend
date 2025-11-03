@@ -141,6 +141,12 @@ namespace TicketSystem.API.Data
                 entity.Property(d => d.Description).HasMaxLength(500);
                 entity.Property(d => d.Color).HasMaxLength(7);
                 entity.HasIndex(d => d.Name).IsUnique();
+
+                // IMPORTANTE: evitar que o EF crie uma FK implícita (Users.DepartmentId)
+                // por causa da navegação Department.Agents (TPH de Users).
+                // Como removemos a coluna Users.DepartmentId do banco, precisamos ignorar
+                // essa navegação para não gerar a shadow property DepartmentId no modelo.
+                entity.Ignore(d => d.Agents);
             });
         }
 
