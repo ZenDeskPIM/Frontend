@@ -1,4 +1,4 @@
-categoria do ticket não sendo mostrada no dashboard, fica um retangulo vazio
+categoria do ticket não sendo mostrada no dashboard, fica um retangulo vazio{FIXED}
 ultima atualização nos tickets esta com a data errada
 Espaço de comentario/notas no ticket porem sem utilização, talvez implementar ou não
 

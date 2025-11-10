@@ -17,7 +17,8 @@
     "android:run": "npm run android:apk && npm run android:install",
     "android:dev": "concurrently -k \"npm:api:dev\" \"npm:adb:reverse\" \"npm run android:run\"",
     "lint": "eslint .",
-    "test": "vitest run",
+  "test": "vitest run",
+  "test:coverage": "vitest run --coverage",
     "preview": "vite preview",
     "build:android": "vite build --mode android",
     "android:sync": "npm run android:build && npx cap sync android"

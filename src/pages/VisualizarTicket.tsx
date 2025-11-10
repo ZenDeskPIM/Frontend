@@ -10,7 +10,7 @@ import { ArrowLeft, Clock, User, Calendar, Tag, AlertTriangle } from "lucide-rea
 import { useTickets, Ticket as StoreTicket } from "@/hooks/use-tickets";
 import { useAuth } from "@/hooks/use-auth-hook";
 import { useToast } from "@/hooks/use-toast";
-import { assignTicketByDbId, getTicketByNumber } from "@/lib/tickets";
+import { assignTicketByDbId, getTicketByNumber, addTicketMessage, getTicketMessages, type ApiMessage } from "@/lib/tickets";
 
 type Ticket = StoreTicket;
 
@@ -82,6 +82,48 @@ export default function VisualizarTicket() {
   // Fallback: if we have a local ticket without descricao (list mapping), merge remote description once loaded
   if (ticket && remoteTicket && !localTicket?.descricao && remoteTicket.descricao) {
     ticket.descricao = remoteTicket.descricao;
+  }
+
+  const [messages, setMessages] = useState<ApiMessage[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [internalNote, setInternalNote] = useState(false);
+  const canInternal = authUser?.userType === "Agent" || authUser?.userType === "Admin";
+
+  useEffect(() => {
+    async function loadMessages() {
+      if (!ticket?.dbId) return;
+      try {
+        const list = await getTicketMessages(ticket.dbId);
+        setMessages(list);
+      } catch {
+        // ignore
+      }
+    }
+    loadMessages();
+  }, [ticket?.dbId, setMessages]);
+
+  async function handleAddMessage() {
+    if (!ticket?.dbId) return;
+    const content = newMessage.trim();
+    if (!content) return;
+    try {
+      const list = await addTicketMessage(ticket.dbId, content, { isInternal: internalNote && !!canInternal });
+      setMessages(list);
+      setNewMessage("");
+      setInternalNote(false);
+      // refresh local ticket updatedAt via upsert
+      const refreshed = await getTicketByNumber(ticket.id);
+      if (refreshed) {
+        upsertTicketDetail({
+          id: refreshed.id,
+          dataAtualizacao: refreshed.dataAtualizacao,
+        });
+        setRemoteTicket(refreshed);
+      }
+      toast({ title: "Comentário enviado", description: internalNote ? "Nota interna adicionada." : "Comentário público adicionado." });
+    } catch (e) {
+      toast({ title: "Erro", description: "Falha ao enviar comentário", variant: "destructive" });
+    }
   }
 
   if (loading) {
@@ -270,8 +312,56 @@ export default function VisualizarTicket() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {/* Comentários não são mantidos na store atual. Se necessário, podemos adicionar depois. */}
-                <p className="text-sm text-muted-foreground">Sem comentários.</p>
+                {messages.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Sem comentários.</p>
+                )}
+                {messages.map(m => (
+                  <div key={m.id} className="rounded border p-3 space-y-1 bg-muted/40">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="font-medium">{m.authorName}</span>
+                      <span>{new Date(m.createdAt).toLocaleString('pt-BR')}</span>
+                    </div>
+                    <p className="text-sm whitespace-pre-wrap break-words">
+                      {m.content}
+                    </p>
+                    <div className="flex gap-2 text-[10px] text-muted-foreground">
+                      {m.isInternal && <span className="uppercase tracking-wide">INTERNAL</span>}
+                      {m.isEdited && <span>Editado</span>}
+                    </div>
+                  </div>
+                ))}
+                {/* Add comment form only for authenticated users */}
+                {authUser && (
+                  <div className="space-y-2 pt-2 border-t">
+                    <Label htmlFor="novo-comentario">Novo Comentário</Label>
+                    <Textarea
+                      id="novo-comentario"
+                      value={newMessage}
+                      onChange={e => setNewMessage(e.target.value)}
+                      placeholder="Digite seu comentário..."
+                      rows={4}
+                    />
+                    <div className="flex items-center justify-between gap-4">
+                      {canInternal && (
+                        <label className="flex items-center gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={internalNote}
+                            onChange={e => setInternalNote(e.target.checked)}
+                          />
+                          Nota interna (visível só para equipe)
+                        </label>
+                      )}
+                      <Button
+                        size="sm"
+                        disabled={!newMessage.trim()}
+                        onClick={handleAddMessage}
+                      >
+                        Enviar
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

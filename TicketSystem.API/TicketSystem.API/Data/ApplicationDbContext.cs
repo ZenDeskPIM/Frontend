@@ -178,5 +178,40 @@ namespace TicketSystem.API.Data
             modelBuilder.Entity<Department>().HasQueryFilter(d => !d.IsDeleted);
             // Attachments removed
         }
+
+        /// <summary>
+        /// Aplica timestamps automáticos (CreatedAt / UpdatedAt) sem espalhar lógica por toda a aplicação.
+        /// Mantém CreatedAt apenas na criação; UpdatedAt é definido sempre que a entidade é modificada.
+        /// </summary>
+        private void ApplyTimestamps()
+        {
+            var utcNow = DateTime.UtcNow;
+            foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    // CreatedAt já é inicializado no construtor/base; reforça para consistência caso default.
+                    if (entry.Entity.CreatedAt == default)
+                        entry.Entity.CreatedAt = utcNow;
+                    // NÃO definimos UpdatedAt aqui para manter nulo até a primeira alteração real.
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    entry.Entity.UpdatedAt = utcNow;
+                }
+            }
+        }
+
+        public override int SaveChanges()
+        {
+            ApplyTimestamps();
+            return base.SaveChanges();
+        }
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            ApplyTimestamps();
+            return await base.SaveChangesAsync(cancellationToken);
+        }
     }
 }

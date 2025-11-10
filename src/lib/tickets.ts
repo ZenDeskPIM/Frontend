@@ -12,7 +12,7 @@ export type ApiTicketSummary = {
     customer: string;
     assignedAgent?: string | null;
     createdAt: string; // ISO
-    updatedAt: string; // ISO
+    updatedAt?: string | null; // ISO or null when never updated
     isOverdue: boolean;
     slaHours?: number | null;
     messageCount: number;
@@ -31,6 +31,21 @@ export type ApiListResponse<T> = {
 // Detail DTO (subset we care about)
 export type ApiTicketDetail = ApiTicketSummary & {
     description: string;
+    messages?: ApiMessage[];
+};
+
+export type ApiMessage = {
+    id: number;
+    ticketId: number;
+    authorId: number;
+    authorName: string;
+    content: string;
+    type: string;
+    isInternal: boolean;
+    isEdited: boolean;
+    createdAt: string;
+    updatedAt?: string | null;
+    editedAt?: string | null;
 };
 
 const statusMapToPt: Record<string, TicketStatus> = {
@@ -80,7 +95,7 @@ export function mapApiTicketToStore(t: ApiTicketSummary): StoreTicket {
         usuario: t.customer,
         departamento: t.department,
         dataCriacao: t.createdAt,
-        dataAtualizacao: t.updatedAt,
+        dataAtualizacao: t.updatedAt ?? t.createdAt,
         slaVencimento,
     };
 }
@@ -137,7 +152,7 @@ export async function createTicket(input: CreateTicketInput): Promise<StoreTicke
         customer: data.customer,
         assignedAgent: data.assignedAgent,
         createdAt: data.createdAt,
-        updatedAt: data.updatedAt,
+    updatedAt: data.updatedAt ?? data.createdAt,
         isOverdue: !!data.isOverdue,
         slaHours: data.slaHours,
         messageCount: data.messageCount ?? 0,
@@ -163,7 +178,7 @@ export async function getTicketByNumber(number: string, persist?: (ticket: Store
             customer: d.customer,
             assignedAgent: d.assignedAgent,
             createdAt: d.createdAt,
-            updatedAt: d.updatedAt,
+            updatedAt: d.updatedAt ?? d.createdAt,
             isOverdue: !!d.isOverdue,
             slaHours: d.slaHours ?? undefined,
             messageCount: d.messageCount ?? 0,
@@ -200,7 +215,7 @@ export async function getTicketByNumber(number: string, persist?: (ticket: Store
                 customer: d.customer,
                 assignedAgent: d.assignedAgent,
                 createdAt: d.createdAt,
-                updatedAt: d.updatedAt,
+                updatedAt: d.updatedAt ?? d.createdAt,
                 isOverdue: !!d.isOverdue,
                 slaHours: d.slaHours ?? undefined,
                 messageCount: d.messageCount ?? 0,
@@ -228,4 +243,18 @@ export async function updateTicketStatusByNumber(number: string, newStatusPt: Ti
 
 export async function assignTicketByDbId(dbId: number, agentId: number): Promise<void> {
     await api.put<{ message?: string }>(`/tickets/${dbId}/assign`, { agentId });
+}
+
+export async function addTicketMessage(dbId: number, content: string, options?: { isInternal?: boolean }): Promise<ApiMessage[]> {
+    const body = { content, isInternal: options?.isInternal ?? false };
+    const res = await api.post<{ message?: string; data: ApiTicketDetail }>(`/tickets/${dbId}/messages`, body);
+    const detail = res.data.data;
+    // When backend returns updated ticket, we can surface its messages list if present
+    return (detail.messages ?? []) as ApiMessage[];
+}
+
+// Fetch messages for a ticket by internal database id (relies on backend filtering internal notes for customers)
+export async function getTicketMessages(dbId: number): Promise<ApiMessage[]> {
+    const res = await api.get<{ message?: string; data: ApiMessage[] }>(`/tickets/${dbId}/messages`);
+    return res.data.data;
 }
