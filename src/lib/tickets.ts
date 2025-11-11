@@ -1,7 +1,17 @@
+/**
+ * Funções de integração com API de tickets e mapeamento para o modelo do frontend.
+ *
+ * Responsabilidades
+ * - Listar tickets e convertê-los para o modelo usado na UI (StoreTicket).
+ * - Criar ticket e retornar no mesmo formato do list.
+ * - Obter detalhes por número (rota otimizada) com fallback para APIs legadas.
+ * - Atualizar status por número, atribuir agente e gerenciar mensagens.
+ */
 import { api } from "./api";
 import type { Ticket as StoreTicket, TicketPrioridade, TicketStatus } from "@/hooks/use-tickets";
 
 // Backend DTOs (subset used by the list view)
+/** DTO resumido de ticket retornado pela API (usado em listagens) */
 export type ApiTicketSummary = {
     id: number;
     number: string;
@@ -18,6 +28,7 @@ export type ApiTicketSummary = {
     messageCount: number;
 };
 
+/** Resposta paginada padrão da API */
 export type ApiListResponse<T> = {
     message?: string;
     data: {
@@ -29,11 +40,13 @@ export type ApiListResponse<T> = {
 };
 
 // Detail DTO (subset we care about)
+/** DTO de detalhe de ticket (estende o summary) */
 export type ApiTicketDetail = ApiTicketSummary & {
     description: string;
     messages?: ApiMessage[];
 };
 
+/** DTO de mensagem de ticket */
 export type ApiMessage = {
     id: number;
     ticketId: number;
@@ -71,12 +84,17 @@ const statusMapToEn: Record<TicketStatus, string> = {
     "Fechado": "Closed",
 };
 
+/** Soma horas a uma data ISO, retornando novo ISO string */
 function addHours(iso: string, hours: number): string {
     const d = new Date(iso);
     d.setHours(d.getHours() + hours);
     return d.toISOString();
 }
 
+/**
+ * Converte o formato da API para o formato de apresentação (StoreTicket)
+ * mapeando status/prioridade para PT e calculando SLA quando disponível.
+ */
 export function mapApiTicketToStore(t: ApiTicketSummary): StoreTicket {
     const status = statusMapToPt[t.status] ?? (t.status as TicketStatus);
     const prioridade = priorityMapToPt[t.priority] ?? (t.priority as TicketPrioridade);
@@ -100,6 +118,7 @@ export function mapApiTicketToStore(t: ApiTicketSummary): StoreTicket {
     };
 }
 
+/** Lista tickets com paginação e busca opcional, mapeando para StoreTicket */
 export async function listTickets(params?: { page?: number; pageSize?: number; q?: string }): Promise<{
     total: number;
     page: number;
@@ -122,6 +141,7 @@ export async function listTickets(params?: { page?: number; pageSize?: number; q
 }
 
 // Create ticket
+/** Payload para criação de ticket */
 export type CreateTicketInput = {
     subject: string;
     description: string;
@@ -132,6 +152,7 @@ export type CreateTicketInput = {
 
 export type ApiResponse<T> = { message?: string; data: T };
 
+/** Cria ticket e retorna StoreTicket compatível com listagem */
 export async function createTicket(input: CreateTicketInput): Promise<StoreTicket> {
     const res = await api.post<ApiResponse<ApiTicketDetail>>("/tickets", {
         subject: input.subject,
@@ -152,7 +173,7 @@ export async function createTicket(input: CreateTicketInput): Promise<StoreTicke
         customer: data.customer,
         assignedAgent: data.assignedAgent,
         createdAt: data.createdAt,
-    updatedAt: data.updatedAt ?? data.createdAt,
+        updatedAt: data.updatedAt ?? data.createdAt,
         isOverdue: !!data.isOverdue,
         slaHours: data.slaHours,
         messageCount: data.messageCount ?? 0,
@@ -163,6 +184,12 @@ export async function createTicket(input: CreateTicketInput): Promise<StoreTicke
     return store;
 }
 
+/**
+ * Busca ticket por número:
+ * 1) Tenta rota otimizada /tickets/by-number/{number}
+ * 2) Fallback: busca por q=number, pega id e então GET /tickets/{id}
+ * Persiste no cache local via callback persist (opcional).
+ */
 export async function getTicketByNumber(number: string, persist?: (ticket: StoreTicket) => void): Promise<StoreTicket | null> {
     // Nova rota otimizada: /tickets/by-number/{number}
     try {
@@ -231,6 +258,7 @@ export async function getTicketByNumber(number: string, persist?: (ticket: Store
     }
 }
 
+/** Atualiza status de um ticket a partir do seu número amigável */
 export async function updateTicketStatusByNumber(number: string, newStatusPt: TicketStatus): Promise<void> {
     const list = await api.get<ApiListResponse<ApiTicketSummary>>("/tickets", {
         params: { q: number, page: 1, pageSize: 1 },
@@ -241,10 +269,12 @@ export async function updateTicketStatusByNumber(number: string, newStatusPt: Ti
     await api.put<{ message?: string }>(`/tickets/${item.id}/status`, { newStatus });
 }
 
+/** Atribui um ticket (por id interno) a um agente */
 export async function assignTicketByDbId(dbId: number, agentId: number): Promise<void> {
     await api.put<{ message?: string }>(`/tickets/${dbId}/assign`, { agentId });
 }
 
+/** Adiciona mensagem ao ticket e retorna lista atualizada */
 export async function addTicketMessage(dbId: number, content: string, options?: { isInternal?: boolean }): Promise<ApiMessage[]> {
     const body = { content, isInternal: options?.isInternal ?? false };
     const res = await api.post<{ message?: string; data: ApiTicketDetail }>(`/tickets/${dbId}/messages`, body);
@@ -254,6 +284,7 @@ export async function addTicketMessage(dbId: number, content: string, options?: 
 }
 
 // Fetch messages for a ticket by internal database id (relies on backend filtering internal notes for customers)
+/** Busca mensagens do ticket (filtragem de internas depende do backend) */
 export async function getTicketMessages(dbId: number): Promise<ApiMessage[]> {
     const res = await api.get<{ message?: string; data: ApiMessage[] }>(`/tickets/${dbId}/messages`);
     return res.data.data;

@@ -1,3 +1,12 @@
+/**
+ * Dashboard: visão geral de tickets com métricas, filtros e listas.
+ *
+ * Responsabilidades
+ * - Carregar tickets do backend e mesclar dados locais (otimista) quando aplicável.
+ * - Exibir métricas (total, abertos, resolvidos, etc.).
+ * - Filtros de prioridade e status (ResponsiveSelect no mobile, Select no desktop).
+ * - UI responsiva: Drawer com detalhes no mobile, tabela no desktop.
+ */
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

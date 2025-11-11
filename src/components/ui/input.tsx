@@ -1,3 +1,7 @@
+/**
+ * Input base estilizado com Tailwind + variantes de foco e disabled.
+ * Props: herda de <input>, aceita className adicional.
+ */
 import * as React from "react"
 
 import { cn } from "@/lib/utils"

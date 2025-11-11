@@ -1,3 +1,15 @@
+/**
+ * Página: NovoTicket
+ *
+ * Responsabilidades:
+ * - Formulário completo de criação de chamado com validações progressivas.
+ * - Auto-save de rascunho em localStorage (continuidade e prevenção de perda de dados).
+ * - Integração com IA (analyzeTicket) para sugestões, perguntas de diagnóstico e hints de prioridade/setor.
+ * - Feedback visual de progresso (% campos obrigatórios preenchidos).
+ * - Adaptar fluxo conforme tipo de usuário (Customer vs outros) e seleção de cliente.
+ * - Otimistic update no store local após criação para refletir imediatamente o novo ticket.
+ * - Acessibilidade: tooltips explicativos, textos auxiliares, estados de loading e descrição de sugestões.
+ */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";

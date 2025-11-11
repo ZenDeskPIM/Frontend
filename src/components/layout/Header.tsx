@@ -1,3 +1,12 @@
+/**
+ * Cabeçalho do app (sticky) com breadcrumbs, notificações, tema e menu do usuário.
+ *
+ * Responsabilidades
+ * - Breadcrumbs baseados na rota atual.
+ * - Indicadores de notificação (simulados) com marcação de lidos.
+ * - Alternância de tema (claro/escuro) via next-themes.
+ * - Ações de usuário (perfil, configurações, sair).
+ */
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useAuth } from "@/hooks/use-auth-hook";
 
+/** Mapeamento simples de path -> nome de rota para breadcrumbs */
 const routeNames: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/novo-ticket': 'Novo Ticket',
@@ -91,6 +101,7 @@ export function Header() {
   const criticalNotifications = notifications.filter(n => n.priority === 'critical' && !n.read);
   const currentRouteName = routeNames[location.pathname] || 'Página não encontrada';
 
+  /** Retorna uma lista de breadcrumbs com base no pathname atual */
   const getBreadcrumbs = () => {
     const pathSegments = location.pathname.split('/').filter(Boolean);
     const breadcrumbs = [{ name: 'Dashboard', path: '/dashboard' }];
@@ -102,6 +113,7 @@ export function Header() {
     return breadcrumbs;
   };
 
+  /** Marca uma notificação como lida e persiste */
   const markAsRead = (id: number) => {
     setNotifications(prev => {
       const updated = prev.map(notification =>
@@ -114,6 +126,7 @@ export function Header() {
     });
   };
 
+  /** Marca todas as notificações como lidas e persiste */
   const markAllAsRead = () => {
     setNotifications(prev => {
       const updated = prev.map(notification => ({ ...notification, read: true }))
@@ -122,6 +135,7 @@ export function Header() {
     });
   };
 
+  /** Obtém iniciais a partir de nome ou email (fallback de avatar) */
   const getInitials = (nameOrEmail?: string) => {
     if (!nameOrEmail) return "US";
     if (nameOrEmail.includes("@")) return nameOrEmail.split("@")[0].slice(0, 2).toUpperCase();
@@ -130,6 +144,7 @@ export function Header() {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
+  /** Realiza logout e navega para a tela de login */
   const handleLogout = () => {
     logout();
     toast({

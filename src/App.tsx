@@ -1,3 +1,15 @@
+/**
+ * Componente raiz da aplicação (SPA) que monta provedores globais:
+ * - ThemeProvider: tema claro/escuro adaptativo.
+ * - QueryClientProvider: cache e gerenciamento de requisições (react-query).
+ * - AuthProvider: estado de autenticação e métodos login/logout.
+ * - TooltipProvider / Toasters: feedback de UI e dicas.
+ * - BrowserRouter + Routes: definição das rotas públicas/privadas.
+ *
+ * Rotas protegidas:
+ * - PrivateRoute: exige usuário autenticado.
+ * - AdminRoute: exige papel admin (userType === 'admin' | '3').
+ */
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,12 +35,14 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+/** Protege rota exigindo autenticação */
 function PrivateRoute({ children }: { children: React.ReactElement }) {
   const { isAuthenticated, loading } = useAuth();
   if (loading) return null;
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
+/** Protege rota exigindo papel de administrador */
 function AdminRoute({ children }: { children: React.ReactElement }) {
   const { user, loading } = useAuth();
   if (loading) return null;

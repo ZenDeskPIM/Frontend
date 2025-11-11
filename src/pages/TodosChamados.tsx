@@ -1,3 +1,11 @@
+/**
+ * TodosChamados: listagem completa com filtros e visão responsiva.
+ *
+ * Responsabilidades
+ * - Buscar tickets paginados e sincronizar com o estado local.
+ * - Filtros: busca livre, status, prioridade e departamento.
+ * - Acessibilidade: aria-labels, botões com nomes claros e Drawer no mobile.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

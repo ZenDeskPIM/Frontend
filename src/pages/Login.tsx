@@ -1,3 +1,16 @@
+/**
+ * Página de Login
+ *
+ * Responsabilidades
+ * - Autenticar o usuário via `useAuth().login(email, password)`.
+ * - Disponibilizar uma simulação simples de redefinição de senha (apenas UI, sem backend).
+ * - Exibir toasts contextuais para sucesso/erro.
+ * - Manter inputs acessíveis (labels e ícones apropriados).
+ *
+ * Observações
+ * - O fluxo real de redefinição deve substituir a simulação atual (timeout do resetSent).
+ * - Após login bem-sucedido, navega para /dashboard.
+ */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,6 +32,7 @@ export default function Login() {
   const [resetEmail, setResetEmail] = useState("");
   const [resetSent, setResetSent] = useState(false);
 
+  /** Tenta autenticar; mostra toast e navega em caso de sucesso */
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
@@ -38,6 +52,7 @@ export default function Login() {
     }
   };
 
+  /** Submissão simulada de redefinição de senha (placeholder) */
   const handleForgotPassword = (e: React.FormEvent) => {
     e.preventDefault();
 

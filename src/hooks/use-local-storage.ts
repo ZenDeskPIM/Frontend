@@ -1,6 +1,15 @@
+/**
+ * Hook genérico para sincronizar estado com localStorage.
+ *
+ * Características
+ * - Hidrata valor inicial ao montar.
+ * - Escuta evento 'storage' para sincronizar entre abas.
+ * - Aceita setState funcional (mesmo padrão do React).
+ */
 import * as React from "react"
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
+  /** Lê valor atual do localStorage (parse JSON) */
   const readValue = React.useCallback((): T => {
     if (typeof window === "undefined") return initialValue
     try {
@@ -13,12 +22,12 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 
   const [storedValue, setStoredValue] = React.useState<T>(readValue)
 
-  // Keep state in sync when key or initialValue change
+  // Mantém estado em sincronia quando key ou initialValue mudam
   React.useEffect(() => {
     setStoredValue(readValue())
   }, [readValue])
 
-  // Sync state across tabs via the 'storage' event
+  // Sincroniza estado entre abas via evento 'storage'
   React.useEffect(() => {
     if (typeof window === "undefined") return
     const onStorage = (e: StorageEvent) => {
@@ -37,6 +46,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     return () => window.removeEventListener("storage", onStorage)
   }, [key, initialValue])
 
+  /** Atualiza valor e persiste em localStorage (seguro contra erros) */
   const setValue = React.useCallback(
     (value: React.SetStateAction<T>) => {
       try {

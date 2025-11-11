@@ -34,21 +34,21 @@ export default defineConfig(({ mode }) => ({
         'public/**',
         'src/sw.ts',
         // Temporarily exclude large UI pages & layout until page tests exist
-  // Reintroduce specific pages we are adding smoke tests for
-  // Keep excluding the rest for now
-  'src/pages/Dashboard.tsx',
-  'src/pages/NovoTicket.tsx',
-  'src/pages/FAQ.tsx',
-  'src/pages/Relatorios.tsx',
-  'src/pages/TodosChamados.tsx',
-  'src/pages/PesquisarTickets.tsx',
-  'src/pages/EditarTicket.tsx',
-  'src/pages/VisualizarTicket.tsx',
-  'src/pages/Perfil.tsx',
-  'src/pages/Configuracoes.tsx',
-  'src/pages/NotFound.tsx',
-  // Layout components excluded for now
-  'src/components/layout/**',
+        // Reintroduce specific pages we are adding smoke tests for
+        // Keep excluding the rest for now
+        'src/pages/Dashboard.tsx',
+        'src/pages/NovoTicket.tsx',
+        'src/pages/FAQ.tsx',
+        'src/pages/Relatorios.tsx',
+        'src/pages/TodosChamados.tsx',
+        'src/pages/PesquisarTickets.tsx',
+        'src/pages/EditarTicket.tsx',
+        'src/pages/VisualizarTicket.tsx',
+        'src/pages/Perfil.tsx',
+        'src/pages/Configuracoes.tsx',
+        'src/pages/NotFound.tsx',
+        // Layout components excluded for now
+        'src/components/layout/**',
         'src/components/ui/**',
         'src/App.tsx',
         'src/main.tsx',

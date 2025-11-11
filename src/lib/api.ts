@@ -1,3 +1,12 @@
+/**
+ * Cliente HTTP central do frontend (Axios) e utilitários de autenticação.
+ *
+ * Objetivos
+ * - Expor uma instância Axios configurada com baseURL e JSON headers.
+ * - Injetar automaticamente o token JWT no header Authorization.
+ * - Tratar 401 para limpar token e deixar o fluxo de login assumir.
+ * - Logar requisições/respostas no modo Android para depuração.
+ */
 import axios, { AxiosHeaders } from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL as string | undefined;
@@ -12,8 +21,10 @@ if (import.meta.env.MODE === "android") {
     console.info("[Android] Using VITE_API_URL:", API_URL);
 }
 
+/** Chave usada no localStorage para persistir o token JWT */
 export const TOKEN_STORAGE_KEY = "auth_token";
 
+/** Obtém o token JWT do localStorage (ou null em caso de erro/ausência) */
 export function getToken(): string | null {
     try {
         return localStorage.getItem(TOKEN_STORAGE_KEY);
@@ -22,6 +33,7 @@ export function getToken(): string | null {
     }
 }
 
+/** Define ou remove o token JWT do localStorage de forma segura */
 export function setToken(token: string | null) {
     try {
         if (token) localStorage.setItem(TOKEN_STORAGE_KEY, token);
@@ -31,11 +43,13 @@ export function setToken(token: string | null) {
     }
 }
 
+/** Instância Axios padrão do app */
 export const api = axios.create({
     baseURL: API_URL,
     headers: { "Content-Type": "application/json" },
 });
 
+// Interceptor de request: injeta Authorization: Bearer <token>
 api.interceptors.request.use((config) => {
     const token = getToken();
     if (token) {
@@ -45,6 +59,7 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
+// Interceptor de response: logging no Android e limpeza em 401
 api.interceptors.response.use(
     (res) => res,
     async (error) => {

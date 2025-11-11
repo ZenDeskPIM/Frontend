@@ -1,3 +1,7 @@
+/**
+ * Hook de conveniência para acessar o contexto de autenticação.
+ * Garante que só é utilizado dentro do <AuthProvider>.
+ */
 import { useContext } from "react";
 import { AuthContext } from "./auth-context";
 

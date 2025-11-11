@@ -1,3 +1,11 @@
+/**
+ * Componente de layout raiz para páginas autenticadas.
+ *
+ * Estrutura
+ * - Sidebar lateral (navegação principal e administrativa)
+ * - Header fixo com breadcrumbs e ações de usuário
+ * - Área principal rolável contendo o conteúdo da página
+ */
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Header } from "./Header";

@@ -1,3 +1,7 @@
+/**
+ * Hook utilitário para detectar layout mobile (<= 767px).
+ * Usa matchMedia e atualiza automaticamente ao redimensionar.
+ */
 import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768

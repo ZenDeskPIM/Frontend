@@ -1,3 +1,11 @@
+/**
+ * Página: Perfil
+ *
+ * Responsabilidades:
+ * - Exibir resumo de dados do usuário autenticado (mock atual) em cartões organizados.
+ * - Estrutura acessível: avatar com fallback, separadores, ícones semânticos, botão de voltar.
+ * - Futuro: integrar com contexto de autenticação e permitir edição inline.
+ */
 import { ArrowLeft, User, Mail, Calendar, MapPin, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

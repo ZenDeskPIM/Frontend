@@ -87,9 +87,9 @@ export default function EditarTicket() {
     if (!ticket?.dbId || !comment.trim()) return;
     try {
       setPosting(true);
-  await addTicketMessage(ticket.dbId, comment.trim(), { isInternal: internalNote && !!canInternal });
-  // after successful post, refresh detail lightweight without using any
-  updateTicket(ticket.id, { dataAtualizacao: new Date().toISOString() });
+      await addTicketMessage(ticket.dbId, comment.trim(), { isInternal: internalNote && !!canInternal });
+      // after successful post, refresh detail lightweight without using any
+      updateTicket(ticket.id, { dataAtualizacao: new Date().toISOString() });
       setComment("");
       setInternalNote(false);
       toast({ title: "Comentário adicionado", description: internalNote ? "Nota interna registrada." : "Comentário publicado." });

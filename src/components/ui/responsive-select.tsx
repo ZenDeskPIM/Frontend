@@ -1,3 +1,14 @@
+/**
+ * Componente de seleção responsiva.
+ *
+ * Desktop: usa o Select (Radix) tradicional com portal e trigger.
+ * Mobile (largura < breakpoint): substitui por Drawer full-width + RadioGroup com alvos de toque maiores.
+ *
+ * Benefícios:
+ * - Experiência otimizada para polegar em telas pequenas.
+ * - Mantém acessibilidade (aria-label, aria-expanded, aria-haspopup).
+ * - Bloqueia scroll de fundo quando aberto em mobile para evitar deslocamento acidental.
+ */
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -6,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
+/** Opção simples para seleção */
 type Option = { value: string; label: string };
 
 export type ResponsiveSelectProps = {
@@ -34,7 +46,7 @@ export function ResponsiveSelect({
     const isMobile = useIsMobile();
     const [open, setOpen] = React.useState(false);
 
-    // Prevent background scroll when open
+    // Evita scroll do background quando o Drawer mobile está aberto
     React.useEffect(() => {
         if (!isMobile) return;
         const prev = document.body.style.overflow;
@@ -62,7 +74,7 @@ export function ResponsiveSelect({
         );
     }
 
-    // Mobile: bottom drawer with radio group and large touch targets
+    // Mobile: drawer inferior com opções via RadioGroup (grandes para toque)
     const selectedLabel = options.find((o) => o.value === value)?.label ?? placeholder ?? label ?? "Selecionar";
 
     return (

@@ -1,3 +1,11 @@
+/**
+ * VisualizarTicket: detalhes completos de um chamado.
+ *
+ * Responsabilidades
+ * - Carregar detalhes por número (rota otimizada) e persistir no store local.
+ * - Exibir informações, histórico de mensagens e ações do agente (assumir).
+ * - Manter acessibilidade com landmarks, aria-labels e foco.
+ */
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

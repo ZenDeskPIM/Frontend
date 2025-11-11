@@ -1,3 +1,13 @@
+/**
+ * Página: Configurações
+ *
+ * Responsabilidades:
+ * - Centraliza preferências do sistema e do usuário (tema, notificações, políticas de segurança, tickets).
+ * - Agrupa seções em abas para organização e escaneabilidade rápida.
+ * - Mantém controles acessíveis (labels claros, texto auxiliar e foco consistente).
+ * - Simula persistência (futuro: integrar com API para salvar preferências reais do usuário / tenant).
+ * - Exibe feedback de sucesso/erro via toasts.
+ */
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

@@ -1,3 +1,14 @@
+/**
+ * Página: PesquisarTickets
+ *
+ * Responsabilidades:
+ * - Carregar lista de tickets (listTickets) e armazenar no store global (useTickets).
+ * - Oferecer filtros combinados: texto livre (ID, título, descrição, usuário), status, prioridade e departamento.
+ * - Segmentar visualização em Ativos vs Finalizados usando tabs (facilita foco em chamados abertos).
+ * - Renderização adaptativa: cards + drawer no mobile, tabela detalhada no desktop.
+ * - Acessibilidade: elementos clicáveis possuem roles/descritivos; drawer evita scroll de fundo.
+ * - Performance: memoização de filtros para evitar recomputação custosa em cada render.
+ */
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

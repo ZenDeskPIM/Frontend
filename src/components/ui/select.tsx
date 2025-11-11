@@ -1,3 +1,9 @@
+/**
+ * Wrapper estilizado para @radix-ui/react-select.
+ *
+ * Exporta: Select, SelectTrigger, SelectContent, SelectItem, etc.
+ * Inclui ícones padrão (Chevron) e classes de foco/acessibilidade.
+ */
 import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"

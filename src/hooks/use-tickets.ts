@@ -1,3 +1,7 @@
+/**
+ * Hook para gerenciar tickets no armazenamento local (localStorage) com SLA básico.
+ * Focado em prototipação offline / caching leve.
+ */
 import { useCallback } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 
@@ -30,6 +34,12 @@ const SLA_HOURS: Record<TicketPrioridade, number> = {
   Baixa: 72,
 };
 
+/**
+ * Retorna status de SLA baseado no tempo restante até o vencimento.
+ * - Vencido: deadline passou
+ * - Crítico: menos de 2h restantes
+ * - Normal: caso contrário
+ */
 export function computeSlaStatus(ticket: Ticket) {
   if (!ticket.slaVencimento) return { status: "Normal", hoursUntil: Infinity as number };
   const now = Date.now();
@@ -40,6 +50,7 @@ export function computeSlaStatus(ticket: Ticket) {
   return { status: "Normal" as const, hoursUntil };
 }
 
+/** Calcula data/hora de vencimento do SLA adicionando horas por prioridade */
 function withComputedSla(prioridade: TicketPrioridade): string {
   const hours = SLA_HOURS[prioridade];
   const d = new Date();
@@ -61,6 +72,7 @@ export interface AddTicketInput {
 export function useTickets() {
   const [tickets, setTickets] = useLocalStorage<Ticket[]>("tickets", []);
 
+  /** Adiciona novo ticket e calcula SLA automático */
   const addTicket = useCallback((input: AddTicketInput): Ticket => {
     const now = new Date().toISOString();
     const newTicket: Ticket = {
@@ -81,6 +93,7 @@ export function useTickets() {
     return newTicket;
   }, [setTickets]);
 
+  /** Atualiza propriedades de um ticket e renova dataAtualizacao */
   const updateTicket = useCallback((id: string, changes: Partial<Ticket>) => {
     setTickets((prev) => prev.map(t => t.id === id ? { ...t, ...changes, dataAtualizacao: new Date().toISOString() } : t));
   }, [setTickets]);
@@ -117,10 +130,12 @@ export function useTickets() {
     });
   }, [setTickets]);
 
+  /** Remove ticket pelo id */
   const removeTicket = useCallback((id: string) => {
     setTickets((prev) => prev.filter(t => t.id !== id));
   }, [setTickets]);
 
+  /** Substitui totalmente a coleção de tickets (ex: sincronização) */
   const replaceAll = useCallback((items: Ticket[]) => {
     setTickets(() => items);
   }, [setTickets]);
@@ -128,6 +143,7 @@ export function useTickets() {
   return { tickets, addTicket, updateTicket, removeTicket, replaceAll, upsertTicketDetail };
 }
 
+/** Gera um ID pseudo-único legível: HD-ANO-XXXX */
 function generateTicketId() {
   const now = new Date();
   const year = now.getFullYear();

@@ -1,3 +1,14 @@
+/**
+ * Página: Relatorios
+ *
+ * Responsabilidades:
+ * - Exibir métricas agregadas (mock) de tickets por período e por setor/prioridade.
+ * - Persistir preferências de período/aba/setor em localStorage (useLocalStorage) para experiência contínua.
+ * - Calcular status de SLA dos tickets carregados do store (useTickets).
+ * - Listar próximos atendimentos ordenados pelo vencimento do SLA (priorização operacional).
+ * - Tabela completa de tickets filtrada por setor, com indicação textual de SLA.
+ * - Disponibilizar ações de exportação (placeholders para futura implementação real).
+ */
 import { useState } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

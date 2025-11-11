@@ -1,3 +1,9 @@
+/**
+ * Barra lateral de navegação do app.
+ *
+ * Exibe itens principais para todos e um grupo administrativo quando o usuário é admin.
+ * Determinação de admin: user.userType === 'admin' (case-insensitive) ou '3'.
+ */
 import {
   TicketPlus,
   LayoutDashboard,
@@ -22,6 +28,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
+/** Itens disponíveis para todos os usuários */
 const mainItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Novo Ticket", url: "/novo-ticket", icon: TicketPlus },
@@ -30,6 +37,7 @@ const mainItems = [
   { title: "FAQ", url: "/faq", icon: HelpCircle },
 ];
 
+/** Itens exclusivos para administradores */
 const adminItems = [
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
   { title: "Usuários", url: "/usuarios", icon: Users },
@@ -45,6 +53,7 @@ export function AppSidebar() {
 
   const isActive = (path: string) => currentPath === path;
 
+  /** Define classes de estilo conforme estado ativo/inativo */
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive
       ? "bg-primary text-primary-foreground font-medium shadow-sm"

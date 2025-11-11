@@ -1,3 +1,16 @@
+/**
+ * Página de gestão de usuários (Lista de Usuários)
+ *
+ * Responsabilidades
+ * - Buscar e exibir usuários com filtros segmentados (todos/clientes/agentes/admins)
+ * - Busca client-side com atualização de API após debounce
+ * - Painel inline de criação (Cliente / Agente / Admin) com validação básica
+ * - Layouts responsivos: tabela (desktop) e cartões (mobile)
+ * - Acessibilidade: ARIA roles, updates de status, áreas clicáveis ≥ 44px
+ * - Internacionalização via provider i18n (chaves em pt/en JSON)
+ *
+ * Importante: As strings exibidas vêm do i18n. Mantenha nomes de funções/estados para não quebrar testes.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/i18n/provider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +27,9 @@ import { createUser, listUsers, listCustomers, ApiUser } from "@/lib/users";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+/**
+ * Forma (modelo) de usuário usada na camada de apresentação
+ */
 type UiUsuario = {
   id: number;
   nome: string;
@@ -23,11 +39,17 @@ type UiUsuario = {
   ultimoAcesso: string | "-";
 };
 
+/**
+ * Mapeamento de cores para badges de status
+ */
 const statusColors = {
   "Ativo": "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400",
   "Inativo": "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
 };
 
+/**
+ * Mapeamento de cores para badges de tipo
+ */
 const tipoColors = {
   "Admin": "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400",
   "Suporte": "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400",
@@ -51,6 +73,9 @@ export default function Usuarios() {
   const [agenteForm, setAgenteForm] = useState({ firstName: "", lastName: "", email: "", password: "", status: "Ativo" as "Ativo" | "Inativo", specialization: "", level: 1, isAvailable: true });
   const [adminForm, setAdminForm] = useState({ firstName: "", lastName: "", email: "", password: "", status: "Ativo" as "Ativo" | "Inativo" });
 
+  /**
+   * Converte usuário da API para o modelo UI esperado
+   */
   function mapApiUser(u: ApiUser): UiUsuario {
     const tipo: UiUsuario["tipo"] = u.userType === "Admin" ? "Admin" : u.userType === "Agent" ? "Suporte" : "Usuário";
     return {
@@ -63,6 +88,10 @@ export default function Usuarios() {
     };
   }
 
+  /**
+   * Busca usuários conforme o modo de visualização e query opcional.
+   * Atualiza lista e total preservando estado de carregamento e erros.
+   */
   async function fetchUsers(q?: string) {
     try {
       setLoading(true);
@@ -93,12 +122,13 @@ export default function Usuarios() {
     }
   }
 
+  // Carregamento inicial e alterações nos filtros de visualização
   useEffect(() => {
     fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode]);
 
-  // Debounce busca
+  // Busca com debounce: espera 300ms antes de consultar
   useEffect(() => {
     const h = setTimeout(() => {
       const q = searchTerm.trim();
@@ -108,7 +138,7 @@ export default function Usuarios() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm]);
 
-  // Fetch counters independent of view mode
+  // Busca contadores independente do modo (lista geral + clientes em paralelo)
   useEffect(() => {
     const h = setTimeout(async () => {
       try {
@@ -135,6 +165,7 @@ export default function Usuarios() {
     return usuarios.filter((u) => u.nome.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || String(u.id).toLowerCase().includes(q));
   }, [usuarios, searchTerm]);
 
+  /** Cria usuário conforme aba ativa e adiciona na lista */
   const handleCreateUser = async () => {
     try {
       type CreateUserInput = Parameters<typeof createUser>[0];
@@ -158,15 +189,18 @@ export default function Usuarios() {
     }
   };
 
+  /** Placeholder para fluxo de edição (implementação futura) */
   const handleEditUser = (user: UiUsuario) => {
     setEditingUser(user);
     toast.info("Edição de usuário será adicionada em breve.");
   };
 
+  /** Placeholder para fluxo de remover/desativar (implementação futura) */
   const handleDeleteUser = (id: number, userName: string) => {
     toast.info("Remoção/desativação será adicionada em breve.");
   };
 
+  /** Reseta todos os formulários para valores iniciais */
   const resetForm = () => {
     setEditingUser(null);
     setClienteForm({ firstName: "", lastName: "", email: "", password: "", status: "Ativo", department: "" });
@@ -175,6 +209,7 @@ export default function Usuarios() {
     setActiveTab('cliente');
   };
 
+  /** Extrai mensagem de erro da API de forma segura para feedback ao usuário */
   function extractErrorMessage(err: unknown, fallback = "Erro") {
     if (!err || typeof err !== 'object') return fallback;
     const maybe = (err as { response?: { data?: { message?: unknown } } }).response?.data?.message;
@@ -182,6 +217,7 @@ export default function Usuarios() {
   }
 
   // Simple validators
+  /** Validadores básicos */
   const isEmail = (v: string) => /.+@.+\..+/.test(v);
   const hasMin = (v: string, n: number) => v.trim().length >= n;
   const clienteValid = hasMin(clienteForm.firstName, 1) && hasMin(clienteForm.lastName, 1) && isEmail(clienteForm.email) && hasMin(clienteForm.password, 6);
@@ -194,7 +230,7 @@ export default function Usuarios() {
       <div className={`grid gap-6 ${showCreatePanel ? 'lg:grid-cols-2' : ''}`}>
         {showCreatePanel && (
           <Card id="create-user-panel" className="self-start animate-in fade-in-50 slide-in-from-top-2 lg:slide-in-from-left-2">
-              <CardHeader>
+            <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserPlus className="h-5 w-5" />
                 {t('users.create.header')}
@@ -214,14 +250,14 @@ export default function Usuarios() {
                     <p className="text-xs text-muted-foreground">Clientes abrem tickets; departamento é opcional.</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>{t('users.form.name')}</Label><Input value={clienteForm.firstName} onChange={(e)=>setClienteForm({...clienteForm, firstName:e.target.value})} placeholder="Ex: João" /></div>
-                    <div className="space-y-2"><Label>{t('users.form.surname')}</Label><Input value={clienteForm.lastName} onChange={(e)=>setClienteForm({...clienteForm, lastName:e.target.value})} placeholder="Ex: Silva" /></div>
+                    <div className="space-y-2"><Label>{t('users.form.name')}</Label><Input value={clienteForm.firstName} onChange={(e) => setClienteForm({ ...clienteForm, firstName: e.target.value })} placeholder="Ex: João" /></div>
+                    <div className="space-y-2"><Label>{t('users.form.surname')}</Label><Input value={clienteForm.lastName} onChange={(e) => setClienteForm({ ...clienteForm, lastName: e.target.value })} placeholder="Ex: Silva" /></div>
                   </div>
-                  <div className="space-y-2"><Label>{t('users.form.email')}</Label><Input type="email" value={clienteForm.email} onChange={(e)=>setClienteForm({...clienteForm, email:e.target.value})} placeholder="cliente@exemplo.com" /></div>
-                  <div className="space-y-2"><Label>{t('users.form.password')}</Label><Input type="password" value={clienteForm.password} onChange={(e)=>setClienteForm({...clienteForm, password:e.target.value})} placeholder="Defina uma senha" /></div>
+                  <div className="space-y-2"><Label>{t('users.form.email')}</Label><Input type="email" value={clienteForm.email} onChange={(e) => setClienteForm({ ...clienteForm, email: e.target.value })} placeholder="cliente@exemplo.com" /></div>
+                  <div className="space-y-2"><Label>{t('users.form.password')}</Label><Input type="password" value={clienteForm.password} onChange={(e) => setClienteForm({ ...clienteForm, password: e.target.value })} placeholder="Defina uma senha" /></div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>{t('users.form.status')}</Label><Select value={clienteForm.status} onValueChange={(v:'Ativo'|'Inativo')=>setClienteForm({...clienteForm,status:v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Ativo">Ativo</SelectItem><SelectItem value="Inativo">Inativo</SelectItem></SelectContent></Select></div>
-                    <div className="space-y-2"><Label>{t('users.form.department')}</Label><Input value={clienteForm.department} onChange={(e)=>setClienteForm({...clienteForm, department:e.target.value})} placeholder="Ex: Financeiro" /></div>
+                    <div className="space-y-2"><Label>{t('users.form.status')}</Label><Select value={clienteForm.status} onValueChange={(v: 'Ativo' | 'Inativo') => setClienteForm({ ...clienteForm, status: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Ativo">Ativo</SelectItem><SelectItem value="Inativo">Inativo</SelectItem></SelectContent></Select></div>
+                    <div className="space-y-2"><Label>{t('users.form.department')}</Label><Input value={clienteForm.department} onChange={(e) => setClienteForm({ ...clienteForm, department: e.target.value })} placeholder="Ex: Financeiro" /></div>
                   </div>
                 </div>
               )}
@@ -232,17 +268,17 @@ export default function Usuarios() {
                     <p className="text-xs text-muted-foreground">Defina especialização, nível e disponibilidade.</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>{t('users.form.name')}</Label><Input value={agenteForm.firstName} onChange={(e)=>setAgenteForm({...agenteForm, firstName:e.target.value})} /></div>
-                    <div className="space-y-2"><Label>{t('users.form.surname')}</Label><Input value={agenteForm.lastName} onChange={(e)=>setAgenteForm({...agenteForm, lastName:e.target.value})} /></div>
+                    <div className="space-y-2"><Label>{t('users.form.name')}</Label><Input value={agenteForm.firstName} onChange={(e) => setAgenteForm({ ...agenteForm, firstName: e.target.value })} /></div>
+                    <div className="space-y-2"><Label>{t('users.form.surname')}</Label><Input value={agenteForm.lastName} onChange={(e) => setAgenteForm({ ...agenteForm, lastName: e.target.value })} /></div>
                   </div>
-                  <div className="space-y-2"><Label>{t('users.form.email')}</Label><Input type="email" value={agenteForm.email} onChange={(e)=>setAgenteForm({...agenteForm, email:e.target.value})} /></div>
-                  <div className="space-y-2"><Label>{t('users.form.password')}</Label><Input type="password" value={agenteForm.password} onChange={(e)=>setAgenteForm({...agenteForm, password:e.target.value})} /></div>
+                  <div className="space-y-2"><Label>{t('users.form.email')}</Label><Input type="email" value={agenteForm.email} onChange={(e) => setAgenteForm({ ...agenteForm, email: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>{t('users.form.password')}</Label><Input type="password" value={agenteForm.password} onChange={(e) => setAgenteForm({ ...agenteForm, password: e.target.value })} /></div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>{t('users.form.status')}</Label><Select value={agenteForm.status} onValueChange={(v:'Ativo'|'Inativo')=>setAgenteForm({...agenteForm,status:v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Ativo">Ativo</SelectItem><SelectItem value="Inativo">Inativo</SelectItem></SelectContent></Select></div>
-                    <div className="space-y-2"><Label>{t('users.form.specialization')}</Label><Input value={agenteForm.specialization} onChange={(e)=>setAgenteForm({...agenteForm, specialization:e.target.value})} placeholder="Redes" /></div>
-                    <div className="space-y-2"><Label>{t('users.form.level')}</Label><Input type="number" min={1} max={5} value={agenteForm.level} onChange={(e)=>setAgenteForm({...agenteForm, level:Number(e.target.value)})} /></div>
+                    <div className="space-y-2"><Label>{t('users.form.status')}</Label><Select value={agenteForm.status} onValueChange={(v: 'Ativo' | 'Inativo') => setAgenteForm({ ...agenteForm, status: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Ativo">Ativo</SelectItem><SelectItem value="Inativo">Inativo</SelectItem></SelectContent></Select></div>
+                    <div className="space-y-2"><Label>{t('users.form.specialization')}</Label><Input value={agenteForm.specialization} onChange={(e) => setAgenteForm({ ...agenteForm, specialization: e.target.value })} placeholder="Redes" /></div>
+                    <div className="space-y-2"><Label>{t('users.form.level')}</Label><Input type="number" min={1} max={5} value={agenteForm.level} onChange={(e) => setAgenteForm({ ...agenteForm, level: Number(e.target.value) })} /></div>
                   </div>
-                  <div className="space-y-2"><Label>{t('users.form.available')}</Label><Select value={agenteForm.isAvailable?'true':'false'} onValueChange={(v:'true'|'false')=>setAgenteForm({...agenteForm,isAvailable:v==='true'})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="true">Sim</SelectItem><SelectItem value="false">Não</SelectItem></SelectContent></Select></div>
+                  <div className="space-y-2"><Label>{t('users.form.available')}</Label><Select value={agenteForm.isAvailable ? 'true' : 'false'} onValueChange={(v: 'true' | 'false') => setAgenteForm({ ...agenteForm, isAvailable: v === 'true' })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="true">Sim</SelectItem><SelectItem value="false">Não</SelectItem></SelectContent></Select></div>
                 </div>
               )}
               {activeTab === 'admin' && (
@@ -252,12 +288,12 @@ export default function Usuarios() {
                     <p className="text-xs text-muted-foreground">Administradores possuem acesso total ao sistema.</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>{t('users.form.name')}</Label><Input value={adminForm.firstName} onChange={(e)=>setAdminForm({...adminForm, firstName:e.target.value})} /></div>
-                    <div className="space-y-2"><Label>{t('users.form.surname')}</Label><Input value={adminForm.lastName} onChange={(e)=>setAdminForm({...adminForm, lastName:e.target.value})} /></div>
+                    <div className="space-y-2"><Label>{t('users.form.name')}</Label><Input value={adminForm.firstName} onChange={(e) => setAdminForm({ ...adminForm, firstName: e.target.value })} /></div>
+                    <div className="space-y-2"><Label>{t('users.form.surname')}</Label><Input value={adminForm.lastName} onChange={(e) => setAdminForm({ ...adminForm, lastName: e.target.value })} /></div>
                   </div>
-                  <div className="space-y-2"><Label>{t('users.form.email')}</Label><Input type="email" value={adminForm.email} onChange={(e)=>setAdminForm({...adminForm, email:e.target.value})} /></div>
-                  <div className="space-y-2"><Label>{t('users.form.password')}</Label><Input type="password" value={adminForm.password} onChange={(e)=>setAdminForm({...adminForm, password:e.target.value})} /></div>
-                  <div className="space-y-2"><Label>{t('users.form.status')}</Label><Select value={adminForm.status} onValueChange={(v:'Ativo'|'Inativo')=>setAdminForm({...adminForm,status:v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Ativo">Ativo</SelectItem><SelectItem value="Inativo">Inativo</SelectItem></SelectContent></Select></div>
+                  <div className="space-y-2"><Label>{t('users.form.email')}</Label><Input type="email" value={adminForm.email} onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>{t('users.form.password')}</Label><Input type="password" value={adminForm.password} onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>{t('users.form.status')}</Label><Select value={adminForm.status} onValueChange={(v: 'Ativo' | 'Inativo') => setAdminForm({ ...adminForm, status: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Ativo">Ativo</SelectItem><SelectItem value="Inativo">Inativo</SelectItem></SelectContent></Select></div>
                 </div>
               )}
               <div className="flex justify-end gap-2 pt-2">
@@ -344,81 +380,81 @@ export default function Usuarios() {
             </div>
             {/* Desktop/tablet table */}
             <div className="hidden md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('users.table.id')}</TableHead>
-                  <TableHead>{t('users.table.name')}</TableHead>
-                  <TableHead>{t('users.table.email')}</TableHead>
-                  <TableHead>{t('users.table.type')}</TableHead>
-                  <TableHead>{t('users.table.status')}</TableHead>
-                  <TableHead>{t('users.table.lastAccess')}</TableHead>
-                  <TableHead>{t('users.table.actions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsuarios.map((usuario) => (
-                  <TableRow key={usuario.id}>
-                    <TableCell className="font-medium">{usuario.id}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <User className="h-4 w-4 text-primary" />
-                        </div>
-                        {usuario.nome}
-                      </div>
-                    </TableCell>
-                    <TableCell>{usuario.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className={tipoColors[usuario.tipo]}>
-                        <Shield className="h-3 w-3 mr-1" />
-                        {usuario.tipo === 'Usuário' ? 'Cliente' : usuario.tipo === 'Suporte' ? 'Agente' : 'Admin'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className={statusColors[usuario.status]}>
-                        {usuario.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {usuario.ultimoAcesso !== "-" && typeof usuario.ultimoAcesso === "string" ? new Date(usuario.ultimoAcesso).toLocaleDateString('pt-BR') : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEditUser(usuario)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle className="flex items-center gap-2">
-                                <AlertTriangle className="h-5 w-5 text-destructive" />
-                                Confirmar exclusão
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir o usuário <strong>{usuario.nome}</strong>?
-                                Esta ação não pode ser desfeita e todos os dados relacionados serão perdidos.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteUser(usuario.id, usuario.nome)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                Sim, excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('users.table.id')}</TableHead>
+                    <TableHead>{t('users.table.name')}</TableHead>
+                    <TableHead>{t('users.table.email')}</TableHead>
+                    <TableHead>{t('users.table.type')}</TableHead>
+                    <TableHead>{t('users.table.status')}</TableHead>
+                    <TableHead>{t('users.table.lastAccess')}</TableHead>
+                    <TableHead>{t('users.table.actions')}</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsuarios.map((usuario) => (
+                    <TableRow key={usuario.id}>
+                      <TableCell className="font-medium">{usuario.id}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="h-4 w-4 text-primary" />
+                          </div>
+                          {usuario.nome}
+                        </div>
+                      </TableCell>
+                      <TableCell>{usuario.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={tipoColors[usuario.tipo]}>
+                          <Shield className="h-3 w-3 mr-1" />
+                          {usuario.tipo === 'Usuário' ? 'Cliente' : usuario.tipo === 'Suporte' ? 'Agente' : 'Admin'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={statusColors[usuario.status]}>
+                          {usuario.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {usuario.ultimoAcesso !== "-" && typeof usuario.ultimoAcesso === "string" ? new Date(usuario.ultimoAcesso).toLocaleDateString('pt-BR') : "-"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleEditUser(usuario)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle className="flex items-center gap-2">
+                                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                                  Confirmar exclusão
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir o usuário <strong>{usuario.nome}</strong>?
+                                  Esta ação não pode ser desfeita e todos os dados relacionados serão perdidos.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteUser(usuario.id, usuario.nome)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                  Sim, excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
 
             {/* Mobile card list */}

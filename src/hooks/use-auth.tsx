@@ -1,3 +1,11 @@
+/**
+ * Provedor de autenticação.
+ *
+ * Responsabilidades
+ * - Hidratar usuário a partir do localStorage na inicialização.
+ * - Validar token (se existir) via /auth/profile e sincronizar estado.
+ * - Expor métodos login/logout e estado (user, isAuthenticated, loading).
+ */
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiResponse, getToken, setToken } from "@/lib/api";
 import { AuthContext, AuthUser } from "./auth-context";
@@ -9,7 +17,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // On boot, try to hydrate user from localStorage and, if token exists, validate via /auth/profile
+        // Ao subir o app: hidrata usuário do localStorage e, havendo token, valida no /auth/profile
         const boot = async () => {
             try {
                 const raw = localStorage.getItem(STORAGE_KEY);
@@ -41,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         void boot();
     }, []);
 
+    /** Realiza login e persiste token e usuário; retorna true/false */
     const login = useCallback(async (email: string, password: string) => {
         if (!email || !password) return false;
         try {
@@ -60,6 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
+    /** Remove credenciais e limpa o estado de autenticação */
     const logout = useCallback(() => {
         setUser(null);
         setToken(null);
@@ -77,4 +87,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Note: useAuth hook is defined in use-auth-hook.ts to keep this file export clean for Fast Refresh.
+// Nota: o hook useAuth está em use-auth-hook.ts para manter este arquivo focado no provider.

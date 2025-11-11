@@ -1,3 +1,11 @@
+/**
+ * Ponto de entrada do frontend.
+ *
+ * Responsabilidades
+ * - Montar a aplicação dentro de <StrictMode> com I18nProvider.
+ * - Registrar Service Worker (sw.js) após load para PWA/offline básico.
+ * - Configurar StatusBar no Android via Capacitor (cor, overlay e estilo).
+ */
 import { createRoot } from 'react-dom/client'
 import { Capacitor } from '@capacitor/core'
 import { StatusBar, Style as StatusBarStyle } from '@capacitor/status-bar'
@@ -8,13 +16,13 @@ import { I18nProvider } from './i18n/provider'
 
 const container = document.getElementById('root')
 if (container) {
-createRoot(container).render(
-    <React.StrictMode>
-        <I18nProvider>
-            <App />
-        </I18nProvider>
-    </React.StrictMode>
-);
+    createRoot(container).render(
+        <React.StrictMode>
+            <I18nProvider>
+                <App />
+            </I18nProvider>
+        </React.StrictMode>
+    );
 }
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
