@@ -42,20 +42,24 @@ describe("useToast", () => {
         const mod = await import("./use-toast");
         const { reducer } = mod;
 
-        const added = reducer({ toasts: [] }, {
+        const addAction: Parameters<typeof reducer>[1] = {
             type: "ADD_TOAST",
             toast: { id: "1", title: "Primeiro", open: true },
-        } as any);
-        const updated = reducer(added, {
+        };
+        const updateAction: Parameters<typeof reducer>[1] = {
             type: "UPDATE_TOAST",
             toast: { id: "1", description: "Atualizado" },
-        } as any);
+        };
+
+        const added = reducer({ toasts: [] }, addAction);
+        const updated = reducer(added, updateAction);
         expect(updated.toasts[0].description).toBe("Atualizado");
 
-        const removed = reducer(updated, {
+        const removeAction: Parameters<typeof reducer>[1] = {
             type: "REMOVE_TOAST",
             toastId: "1",
-        } as any);
+        };
+        const removed = reducer(updated, removeAction);
         expect(removed.toasts).toHaveLength(0);
     });
 });

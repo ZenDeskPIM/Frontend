@@ -12,7 +12,7 @@
  * Importante: As strings exibidas vêm do i18n. Mantenha nomes de funções/estados para não quebrar testes.
  */
 import { useEffect, useMemo, useState } from "react";
-import { useI18n } from "@/i18n/provider";
+import { useI18n } from "@/i18n/use-i18n";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
