@@ -6,7 +6,19 @@ IF EXISTS (SELECT 1
     FROM Departments
     WHERE Name = N'Suporte Técnico')
 BEGIN
-    DELETE FROM Departments WHERE Name = 'Suporte Técnico';
+    DECLARE @deptToKeep INT = (
+        SELECT TOP 1 Id FROM Departments WHERE Name = N'Suporte Técnico' ORDER BY Id DESC
+    );
+    DECLARE @deptToDelete INT = (
+        SELECT TOP 1 Id FROM Departments WHERE Name = 'Suporte Técnico' AND Id <> @deptToKeep ORDER BY Id
+    );
+
+    IF @deptToDelete IS NOT NULL AND @deptToKeep IS NOT NULL
+    BEGIN
+        -- Repoint tickets that reference the duplicate row before removing it.
+        UPDATE Tickets SET DepartmentId = @deptToKeep WHERE DepartmentId = @deptToDelete;
+        DELETE FROM Departments WHERE Id = @deptToDelete;
+    END
 END
 
 -- Índice único para prevenir duplicatas de nome
